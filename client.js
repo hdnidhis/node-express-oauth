@@ -1,7 +1,8 @@
-const express = require("express")
-const bodyParser = require("body-parser")
-const axios = require("axios").default
-const { randomString, timeout } = require("./utils")
+const express = require("express");
+const bodyParser = require("body-parser");
+const axios = require("axios").default;
+const { randomString, timeout } = require("./utils");
+const url = require("url");
 
 const config = {
 	port: 9000,
@@ -13,24 +14,70 @@ const config = {
 	authorizationEndpoint: "http://localhost:9001/authorize",
 	tokenEndpoint: "http://localhost:9001/token",
 	userInfoEndpoint: "http://localhost:9002/user-info",
-}
-let state = ""
+};
+let state = "";
 
-const app = express()
-app.set("view engine", "ejs")
-app.set("views", "assets/client")
-app.use(timeout)
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: true }))
+const app = express();
+app.set("view engine", "ejs");
+app.set("views", "assets/client");
+app.use(timeout);
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 /*
 Your code here
 */
 
+app.get("/authorize", (req, res) => {
+	state = randomString();
+	const redirectUrl = url.parse(config.authorizationEndpoint);
+	redirectUrl.query = {
+		response_type: "code",
+		client_id: config.clientId,
+		redirect_uri: config.redirectUri,
+		scope: "permission:name permission:date_of_birth",
+		state: state,
+	};
+	res.redirect(url.format(redirectUrl));
+});
+
+app.get("/callback", (req, res) => {
+	if (req.query.state !== state) {
+		res.status(403).send("Error: state mismatch");
+		return;
+	}
+	const { code } = req.query;
+	axios({
+		method: "POST",
+		url: config.tokenEndpoint,
+		auth: { username: config.clientId, password: config.clientSecret },
+		data: {
+			code,
+		},
+		validateStatus: null,
+	})
+		.then((response) => {
+			return axios({
+				method: "GET",
+				url: config.userInfoEndpoint,
+				headers: {
+					authorization: "bearer " + response.data.access_token,
+				},
+			});
+		})
+		.then((resp) => {
+			res.render("welcome", { user: resp.data });
+		})
+		.catch((err) => {
+			console.error(err);
+			res.status(500).send("Error: something gone wrong");
+		});
+});
+
 const server = app.listen(config.port, "localhost", function () {
-	var host = server.address().address
-	var port = server.address().port
-})
+	var host = server.address().address;
+	var port = server.address().port;
+});
 
 // for testing purposes
 
@@ -38,9 +85,9 @@ module.exports = {
 	app,
 	server,
 	getState() {
-		return state
+		return state;
 	},
 	setState(s) {
-		state = s
+		state = s;
 	},
-}
+};
