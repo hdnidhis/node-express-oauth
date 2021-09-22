@@ -82,6 +82,8 @@ app.post("/approve", (req, res) => {
 	if (!userName || users[userName] !== password) {
 		res.status(401).send("Error: user not authorized");
 		return;
+	} else {
+		return res.status(200);
 	}
 	const clientReq = requests[requestId];
 	delete requests[requestId];
