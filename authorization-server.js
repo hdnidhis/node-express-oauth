@@ -83,7 +83,7 @@ app.post("/approve", (req, res) => {
 		res.status(401).send("Error: user not authorized");
 		return;
 	} else {
-		return res.status(200);
+		res.status(200).send("Found username and password");
 	}
 	const clientReq = requests[requestId];
 	delete requests[requestId];
