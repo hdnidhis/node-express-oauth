@@ -86,12 +86,12 @@ app.post("/approve", (req, res) => {
 	const clientReq = requests[requestId];
 	delete requests[requestId];
 	if (!clientReq) {
-		res.status(401).send("Error  :invalid user request");
+		res.status(401).send("Error: invalid user request");
 		return;
 	}
 	const code = randomString();
 	authorizationCodes[code] = { clientReq, userName };
-	const redirectUri = url.parse(clientReq.redirectUri);
+	const redirectUri = url.parse(clientReq.redirect_uri);
 	redirectUri.query = {
 		code,
 		state: clientReq.state,
